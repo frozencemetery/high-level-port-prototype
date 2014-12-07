@@ -732,16 +732,16 @@ class TestWrapUnwrap(_GSSAPIKerberosTestCase):
         unwrapped_message.should_be(b'test message')
 
 
-TEST_OIDS = {'SPNEGO': {'bytes': '\053\006\001\005\005\002',
-                        'string': '<OID 1.3.6.1.5.5.2>'},
-             'KRB5': {'bytes': '\052\206\110\206\367\022\001\002\002',
-                      'string': '<OID 1.2.840.113554.1.2.2>'},
-             'KRB5_OLD': {'bytes': '\053\005\001\005\002',
-                          'string': '<OID 1.3.5.1.5.2>'},
-             'KRB5_WRONG': {'bytes': '\052\206\110\202\367\022\001\002\002',
-                            'string': '<OID 1.2.840.48018.1.2.2>'},
-             'IAKERB': {'bytes': '\053\006\001\005\002\005',
-                        'string': '<OID 1.3.6.1.5.2.5>'}}
+TEST_OIDS = {'SPNEGO': {'bytes': b'\053\006\001\005\005\002',
+                        'string': '1.3.6.1.5.5.2'},
+             'KRB5': {'bytes': b'\052\206\110\206\367\022\001\002\002',
+                      'string': '1.2.840.113554.1.2.2'},
+             'KRB5_OLD': {'bytes': b'\053\005\001\005\002',
+                          'string': '1.3.5.1.5.2'},
+             'KRB5_WRONG': {'bytes': b'\052\206\110\202\367\022\001\002\002',
+                            'string': '1.2.840.48018.1.2.2'},
+             'IAKERB': {'bytes': b'\053\006\001\005\002\005',
+                        'string': '1.3.6.1.5.2.5'}}
 
 
 class TestOIDTransforms(unittest.TestCase):
@@ -749,4 +749,15 @@ class TestOIDTransforms(unittest.TestCase):
         for oid in TEST_OIDS.values():
             o = gb.OID(elements=oid['bytes'])
             text = repr(o)
-            text.should_be(oid['string'])
+            text.should_be("<OID {0}>".format(oid['string']))
+
+    def test_encode_from_string(self):
+        for oid in TEST_OIDS.values():
+            o = gb.OID.from_int_seq(oid['string'])
+            o.__bytes__().should_be(oid['bytes'])
+
+    def test_encode_from_int_seq(self):
+        for oid in TEST_OIDS.values():
+            int_seq = oid['string'].split('.')
+            o = gb.OID.from_int_seq(int_seq)
+            o.__bytes__().should_be(oid['bytes'])
