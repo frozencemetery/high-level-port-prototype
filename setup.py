@@ -187,7 +187,8 @@ setup(
     keywords=['gssapi', 'security'],
     install_requires=[
         'enum34',
-        'decorator'
+        'decorator',
+        'six'
     ],
     tests_require=[
         'tox'
