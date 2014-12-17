@@ -25,8 +25,8 @@ cdef gss_OID_set c_get_mech_oid_set(object mechs):
     return res_set
 
 
-cdef object c_create_mech_list(gss_OID_set mech_set, bint free=True):
-    """Convert a set of GSS mechanism OIDs to a list of MechType values."""
+cdef object c_create_oid_list(gss_OID_set mech_set, bint free=True):
+    """Convert a GSS OID set struct to a list of OIDs"""
 
     l = []
     cdef i
