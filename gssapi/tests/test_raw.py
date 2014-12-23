@@ -315,7 +315,7 @@ class TestBaseUtilities(_GSSAPIKerberosTestCase):
         # NB(sross): overwrite because the ccache doesn't exist yet
         store_res = gb.store_cred_into(store, initial_creds, overwrite=True)
 
-        store_res.mech_types.shouldnt_be_none()
+        store_res.mechs.shouldnt_be_none()
         store_res.usage.should_be('initiate')
 
         name = gb.import_name(princ_name.encode('UTF-8'))

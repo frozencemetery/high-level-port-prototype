@@ -171,8 +171,8 @@ class CredsTestCase(_GSSAPIKerberosTestCase):
 
         store_res = initial_creds.store(store, overwrite=True)
 
-        store_res.mech_types.shouldnt_be_none()
-        store_res.mech_types.shouldnt_be_empty()
+        store_res.mechs.shouldnt_be_none()
+        store_res.mechs.shouldnt_be_empty()
         store_res.usage.should_be('initiate')
 
         name = gssnames.Name(princ_name)
@@ -405,7 +405,7 @@ class SecurityContextTestCase(_GSSAPIKerberosTestCase):
         self.skipTest("Not Yet Implemented")
 
     @exist_perms(lifetime=30, flags=[],
-                 mech_type=gb.MechType.kerberos,
+                 mech=gb.MechType.kerberos,
                  channel_bindings=None)
     def test_create_new_init(self, str_name, kwargs):
         client_ctx = gssctx.SecurityContext(name=self.target_name,
@@ -445,14 +445,14 @@ class SecurityContextTestCase(_GSSAPIKerberosTestCase):
 
         server_ctx.lifetime.should_be_at_most(400)
         server_ctx.initiator_name.should_be(client_ctx.initiator_name)
-        server_ctx.mech_type.should_be_a(gb.OID)
+        server_ctx.mech.should_be_a(gb.OID)
         server_ctx.actual_flags.should_be_a(gb.IntEnumFlagSet)
         server_ctx.locally_initiated.should_be_false()
         server_ctx.complete.should_be_true()
 
         client_ctx.lifetime.should_be_at_most(400)
         client_ctx.target_name.should_be(self.target_name)
-        client_ctx.mech_type.should_be_a(gb.OID)
+        client_ctx.mech.should_be_a(gb.OID)
         client_ctx.actual_flags.should_be_a(gb.IntEnumFlagSet)
         client_ctx.locally_initiated.should_be_true()
         client_ctx.complete.should_be_true()
