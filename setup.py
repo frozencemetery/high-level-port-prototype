@@ -44,20 +44,20 @@ except ImportError:
 # get the compile and link args
 link_args = os.environ.get('GSSAPI_LINKER_ARGS', None)
 compile_args = os.environ.get('GSSAPI_COMPILER_ARGS', None)
-has_gss_framework = False
+osx_has_gss_framework = False
 if sys.platform == 'darwin':
     mac_ver = [int(v) for v in platform.mac_ver()[0].split('.')]
-    has_gss_framework = (mac_ver >= [10, 7, 0])
+    osx_has_gss_framework = (mac_ver >= [10, 7, 0])
 
 if link_args is None:
-    if has_gss_framework:
+    if osx_has_gss_framework:
         link_args = '-framework GSS'
     else:
         link_args = get_output('krb5-config --libs gssapi')
 
 if compile_args is None:
-    if has_gss_framework:
-        compile_args = '-framework GSS -DHAS_GSS_FRAMEWORK'
+    if osx_has_gss_framework:
+        compile_args = '-framework GSS -DOSX_HAS_GSS_FRAMEWORK'
     else:
         compile_args = get_output('krb5-config --cflags gssapi')
 
@@ -71,7 +71,7 @@ if ENABLE_SUPPORT_DETECTION:
     import ctypes.util
 
     main_lib = os.environ.get('GSSAPI_MAIN_LIB', None)
-    if main_lib is None and has_gss_framework:
+    if main_lib is None and osx_has_gss_framework:
         main_lib = ctypes.util.find_library('GSS')
     elif main_lib is None:
         for opt in link_args:
