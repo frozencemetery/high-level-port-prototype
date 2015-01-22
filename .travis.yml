@@ -13,4 +13,4 @@ install:
   - "pip install --install-option='--no-cython-compile' cython"
   - "pip install -r test-requirements.txt"
 
-script: sh .travis.sh
+script: ./.travis.sh

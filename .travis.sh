@@ -1,4 +1,17 @@
-#!/bin/sh
+#!/bin/bash
+
+pushd ~
+git clone https://github.com/krb5/krb5
+pushd krb5/src
+autoreconf -f -i
+./configure --prefix=/usr/local
+make
+sudo make install
+popd
+popd
+export PATH=/usr/local/sbin:/usr/local/bin:$PATH
+export LD_LIBRARY_PATH=/opt/krb5/lib:$LD_LIBRARY_PATH
+export GSSAPI_MAIN_LIB=/usr/local/lib/libgssapi_krb5.so
 
 flake8 setup.py
 F8_SETUP=$?
