@@ -4,18 +4,18 @@ python:
   - "3.4"
 
 env:
-  - KRB5_PPAS="" # 1.10
-  - KRB5_PPAS="sssd/updates" # 1.12
-  - KRB5_PPAS="rharwood/krb5-1.13 sssd/updates" # 1.13
-  - KRB5_PPAS="rharwood/krb5-master sssd/updates" # master
+  - KRB5_PPAS="" KRB5_VER="1.10"
+  - KRB5_PPAS="sssd/updates" KRB5_VER="1.12"
+  - KRB5_PPAS="rharwood/krb5-1.13 sssd/updates" KRB5_VER="1.13"
+  - KRB5_PPAS="rharwood/krb5-master sssd/updates" KRB5_VER="master"
 
 matrix:
   exclude:
     - python: "3.4"
-      env: KRB5_PPAS="" # 1.10
+      env: KRB5_PPAS="" KRB5_VER="1.10"
   include:
     - python: "3.3"
-      env: KRB5_PPAS="sssd/updates" # 1.12
+      env: KRB5_PPAS="sssd/updates" KRB5_VER="1.12"
 
 install:
   - "sudo sed -i '1i 127.0.0.1 test.box' /etc/hosts"
@@ -27,3 +27,17 @@ install:
   - "pip install -r test-requirements.txt"
 
 script: sh .travis.sh
+
+before_deploy: sh .travis.before-deploy.sh
+deploy:
+  provider: releases
+  api_key:
+    secure: U8RPR6liglI4J8MOSEyK9uxvSFRMcCkKLflpIFKcpUFg+PUuK85YtRdOOL/L/pifat9/KvoF7OJEMNTQjoYAhziMu8GGsiPZlkFzXNiy54FxTTtgprkhllRK7nw/jK/hopKM01goKVaUL860aU+KdpfStRTaAy8ZGEj13jwOMYU=
+  file:
+    - tag_build/${TRAVIS_TAG}.md5sum
+    - tag_build/${TRAVIS_TAG}.tar.gz
+  on:
+    repo: pythongssapi/python-gssapi
+    tags: true
+    python: "3.4"
+    condition: "$KRB5_VER = '1.13'"
