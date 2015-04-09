@@ -146,3 +146,13 @@ The Team
 * Robbie Harwood (@frozencemetery)
 * Simo Sorce (@simo5)
 * Hugh Cole-Baker (@sigmaris)
+
+Get Involved
+============
+
+We welcome new contributions in the form of Issues and Pull Requests on
+Github.  If you would like to join our discussions, you can find us on
+Freenode_ IRC, channel `#python-gssapi`_.
+
+.. _Freenode: https://webchat.freenode.net/
+.. _#python-gssapi: irc://freenode.net/python-gssapi
