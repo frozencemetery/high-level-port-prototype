@@ -1,6 +1,8 @@
 from gssapi.raw.exceptions import *  # noqa
 from gssapi.raw.misc import GSSError  # noqa
 
+from typing import Dict, Optional
+
 """High-Level API Errors
 
 This module includes several high-level exceptions,
@@ -15,7 +17,8 @@ class GeneralError(Exception):
     MAJOR_MESSAGE = "General error"
     FMT_STR = "{maj}: {min}."
 
-    def __init__(self, minor_message, **kwargs):
+    def __init__(self, minor_message: str,
+                 **kwargs: Optional[str]) -> None:
         maj_str = self.MAJOR_MESSAGE.format(**kwargs)
         err_str = self.FMT_STR.format(maj=maj_str, min=minor_message)
         super(GeneralError, self).__init__(err_str)
@@ -30,7 +33,9 @@ class EncryptionNotUsed(GeneralError):
     """An Error indicating that encryption was requested, but not used"""
     MAJOR_MESSAGE = "Confidentiality was requested, but not used"
 
-    def __init__(self, minor_message, unwrapped_message=None, **kwargs):
+    def __init__(self, minor_message: str,
+                 unwrapped_message: Optional[bytes] = None,
+                 **kwargs: Optional[str]) -> None:
         super(EncryptionNotUsed, self).__init__(minor_message, **kwargs)
 
         self.unwrapped_message = unwrapped_message

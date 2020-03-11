@@ -94,7 +94,7 @@ def acquire_cred(Name name=None, lifetime=None, mechs=None, usage='both'):
             for the "no name" functionality)
         lifetime (int): the lifetime for the credentials (or None for
             indefinite)
-        mechs ([MechType]): the desired mechanisms for which the credentials
+        mechs ([OID]): the desired mechanisms for which the credentials
             should work, or None for the default set
         usage (str): the usage type for the credentials: may be
             'initiate', 'accept', or 'both'

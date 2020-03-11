@@ -40,7 +40,7 @@ import importlib
 from gssapi.raw import _enum_extensions
 
 # NB(directxman12): the enum extensions must be imported BEFORE ANYTHING ELSE!
-for modinf in pkgutil.iter_modules(_enum_extensions.__path__):
+for modinf in pkgutil.iter_modules(_enum_extensions.__path__): # type: ignore
     name = modinf[1]
     importlib.import_module('{0}._enum_extensions.{1}'.format(__name__, name))
 

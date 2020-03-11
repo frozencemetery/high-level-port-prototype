@@ -1,14 +1,20 @@
 from gssapi.raw import creds as rcreds
 from gssapi.raw import named_tuples as tuples
+from gssapi.raw.oids import OID
+from gssapi.raw import names as rnames
 from gssapi._utils import import_gssapi_extension, _encode_dict
 
 from gssapi import names
+from gssapi.mechs import Mechanism
 
 rcred_imp_exp = import_gssapi_extension('cred_imp_exp')
 rcred_s4u = import_gssapi_extension('s4u')
 rcred_cred_store = import_gssapi_extension('cred_store')
 rcred_rfc5588 = import_gssapi_extension('rfc5588')
 
+from typing import Any, Dict, List, Optional, Set, Tuple, Type, Union
+
+CredStore = Dict[Union[str, bytes], Union[str, bytes]]
 
 class Credentials(rcreds.Creds):
     """GSSAPI Credentials
@@ -46,8 +52,12 @@ class Credentials(rcreds.Creds):
 
     __slots__ = ()
 
-    def __new__(cls, base=None, token=None, name=None, lifetime=None,
-                mechs=None, usage='both', store=None):
+    def __new__(cls, base: Optional[rcreds.Creds] = None,
+                token: Optional[bytes] = None,
+                name: Optional[names.Name] = None,
+                lifetime: Optional[int] = None,
+                mechs: Optional[List[OID]] = None, usage: str = 'both',
+                store: Optional[CredStore] = None) -> "Credentials":
         # TODO(directxman12): this is missing support for password
         #                     (non-RFC method)
         if base is not None:
@@ -64,35 +74,39 @@ class Credentials(rcreds.Creds):
                               store=store)
             base_creds = res.creds
 
-        return super(Credentials, cls).__new__(cls, base_creds)
+        # mypy doesn't get that Credentials(Creds) here
+        return super(Credentials, cls).__new__(cls, base_creds) # type: ignore
 
     @property
-    def name(self):
+    def name(self) -> rnames.Name:
         """Get the name associated with these credentials"""
         return self.inquire(name=True, lifetime=False,
                             usage=False, mechs=False).name
 
     @property
-    def lifetime(self):
+    def lifetime(self) -> int:
         """Get the remaining lifetime of these credentials"""
         return self.inquire(name=False, lifetime=True,
                             usage=False, mechs=False).lifetime
 
     @property
-    def mechs(self):
+    def mechs(self) -> Optional[Set[OID]]:
         """Get the mechanisms for these credentials"""
         return self.inquire(name=False, lifetime=False,
                             usage=False, mechs=True).mechs
 
     @property
-    def usage(self):
+    def usage(self) -> str:
         """Get the usage (initiate, accept, or both) of these credentials"""
         return self.inquire(name=False, lifetime=False,
                             usage=True, mechs=False).usage
 
     @classmethod
-    def acquire(cls, name=None, lifetime=None, mechs=None, usage='both',
-                store=None):
+    def acquire(cls, name: Optional[names.Name] = None,
+                lifetime: Optional[int] = None,
+                mechs: Optional[List[OID]] = None, usage: str = 'both',
+                store: Optional[CredStore] = None) -> \
+                tuples.AcquireCredResult:
         """Acquire GSSAPI credentials
 
         This method acquires credentials.  If the `store` argument is
@@ -133,25 +147,25 @@ class Credentials(rcreds.Creds):
         """
 
         if store is None:
-            res = rcreds.acquire_cred(name, lifetime,
-                                      mechs, usage)
+            res = rcreds.acquire_cred(name, lifetime, mechs, usage)
         else:
             if rcred_cred_store is None:
                 raise NotImplementedError("Your GSSAPI implementation does "
                                           "not have support for manipulating "
                                           "credential stores")
 
-            store = _encode_dict(store)
+            estore = _encode_dict(store)
 
-            res = rcred_cred_store.acquire_cred_from(store, name,
+            res = rcred_cred_store.acquire_cred_from(estore, name,
                                                      lifetime, mechs,
                                                      usage)
 
         return tuples.AcquireCredResult(cls(base=res.creds), res.mechs,
                                         res.lifetime)
 
-    def store(self, store=None, usage='both', mech=None,
-              overwrite=False, set_default=False):
+    def store(self, store: Optional[CredStore] = None, usage: str = 'both',
+              mech: Optional[OID] = None, overwrite: bool = False,
+              set_default: bool = False) -> tuples.StoreCredResult:
         """Store these credentials into the given store
 
         This method stores the current credentials into the specified
@@ -183,27 +197,30 @@ class Credentials(rcreds.Creds):
             OperationUnavailableError
             DuplicateCredentialsElementError
         """
-
+        ret: tuples.StoreCredResult
         if store is None:
             if rcred_rfc5588 is None:
                 raise NotImplementedError("Your GSSAPI implementation does "
                                           "not have support for RFC 5588")
 
-            return rcred_rfc5588.store_cred(self, usage, mech,
-                                            overwrite, set_default)
+
+            ret = rcred_rfc5588.store_cred(self, usage, mech, overwrite,
+                                           set_default)
         else:
             if rcred_cred_store is None:
                 raise NotImplementedError("Your GSSAPI implementation does "
                                           "not have support for manipulating "
                                           "credential stores directly")
 
-            store = _encode_dict(store)
+            estore = _encode_dict(store)
+            ret = rcred_cred_store.store_cred_into(estore, self, usage, mech,
+                                                   overwrite, set_default)
+        return ret
 
-            return rcred_cred_store.store_cred_into(store, self, usage, mech,
-                                                    overwrite, set_default)
-
-    def impersonate(self, name=None, lifetime=None, mechs=None,
-                    usage='initiate'):
+    def impersonate(self, name: Optional[names.Name] = None,
+                    lifetime: Optional[int] = None,
+                    mechs: Optional[OID] = None,
+                    usage: str = 'initiate') -> Credentials:
         """Impersonate a name using the current credentials
 
         This method acquires credentials by impersonating another
@@ -235,7 +252,9 @@ class Credentials(rcreds.Creds):
 
         return type(self)(base=res.creds)
 
-    def inquire(self, name=True, lifetime=True, usage=True, mechs=True):
+    def inquire(self, name: bool = True, lifetime: bool = True,
+                usage: bool = True,
+                mechs: bool = True) -> tuples.InquireCredResult:
         """Inspect these credentials for information
 
         This method inspects these credentials for information about them.
@@ -266,8 +285,10 @@ class Credentials(rcreds.Creds):
         return tuples.InquireCredResult(res_name, res.lifetime,
                                         res.usage, res.mechs)
 
-    def inquire_by_mech(self, mech, name=True, init_lifetime=True,
-                        accept_lifetime=True, usage=True):
+    def inquire_by_mech(self, mech: OID, name: bool = True,
+                        init_lifetime: bool = True,
+                        accept_lifetime: bool = True,
+                        usage: bool = True) -> tuples.InquireCredByMechResult:
         """Inspect these credentials for per-mechanism information
 
         This method inspects these credentials for per-mechanism information
@@ -300,9 +321,11 @@ class Credentials(rcreds.Creds):
                                               res.accept_lifetime,
                                               res.usage)
 
-    def add(self, name, mech, usage='both',
-            init_lifetime=None, accept_lifetime=None, impersonator=None,
-            store=None):
+    def add(self, name: names.Name, mech: OID, usage: str = 'both',
+            init_lifetime: Optional[int] = None,
+            accept_lifetime: Optional[int] = None,
+            impersonator: Optional[Credentials] = None,
+            store: Optional[CredStore] = None) -> Credentials:
         """Acquire more credentials to add to the current set
 
         This method works like :meth:`acquire`, except that it adds the
@@ -366,9 +389,9 @@ class Credentials(rcreds.Creds):
                 raise NotImplementedError("Your GSSAPI implementation does "
                                           "not have support for manipulating "
                                           "credential stores")
-            store = _encode_dict(store)
+            estore = _encode_dict(store)
 
-            res = rcred_cred_store.add_cred_from(store, self, name, mech,
+            res = rcred_cred_store.add_cred_from(estore, self, name, mech,
                                                  usage, init_lifetime,
                                                  accept_lifetime)
         elif impersonator is not None:
@@ -385,7 +408,7 @@ class Credentials(rcreds.Creds):
 
         return Credentials(res.creds)
 
-    def export(self):
+    def export(self) -> bytes:
         """Export these credentials into a token
 
         This method exports the current credentials to a token that can
@@ -403,10 +426,10 @@ class Credentials(rcreds.Creds):
             raise NotImplementedError("Your GSSAPI implementation does not "
                                       "have support for importing and "
                                       "exporting creditials")
-
-        return rcred_imp_exp.export_cred(self)
+        ret: bytes = rcred_imp_exp.export_cred(self)
+        return ret
 
     # pickle protocol support
-    def __reduce__(self):
+    def __reduce__(self) -> Tuple[Type[Credentials], Tuple[None, bytes]]:
         # the unpickle arguments to new are (base=None, token=self.export())
         return (type(self), (None, self.export()))

@@ -1,15 +1,17 @@
 import six
 
 from gssapi.raw import names as rname
-from gssapi.raw import NameType
+from gssapi.raw.types import NameType, MechType
 from gssapi.raw import named_tuples as tuples
 from gssapi import _utils
+from gssapi.raw.oids import OID
 
 if six.PY2:
     from collections import MutableMapping, Iterable
 else:
     from collections.abc import MutableMapping, Iterable
 
+from typing import Any, AnyStr, Iterable, Iterator, Optional, Union
 
 rname_rfc6680 = _utils.import_gssapi_extension('rfc6680')
 rname_rfc6680_comp_oid = _utils.import_gssapi_extension('rfc6680_comp_oid')
@@ -39,9 +41,12 @@ class Name(rname.Name):
     """
 
     __slots__ = ('_attr_obj')
+    _attr_obj: Optional[_NameAttributeMapping]
 
-    def __new__(cls, base=None, name_type=None, token=None,
-                composite=False):
+    def __new__(cls, base: Union[rname.Name, str, bytes, None] = None,
+                name_type: Optional[OID] = None,
+                token: Optional[bytes] = None,
+                composite: bool = False) -> Any:
         if token is not None:
             if composite:
                 if rname_rfc6680 is None:
@@ -68,7 +73,7 @@ class Name(rname.Name):
                 base_name = rname.import_name(token, NameType.export)
         elif isinstance(base, rname.Name):
             base_name = base
-        else:
+        elif base is not None and name_type is not None:
             if isinstance(base, six.text_type):
                 base = base.encode(_utils._get_encoding())
 
@@ -76,7 +81,10 @@ class Name(rname.Name):
 
         return super(Name, cls).__new__(cls, base_name)
 
-    def __init__(self, base=None, name_type=None, token=None, composite=False):
+    def __init__(self, base: Union[rname.Name, str, bytes, None] = None,
+                 name_type: Optional[OID] = None,
+                 token: Optional[bytes] = None,
+                 composite: bool = False) -> None:
         """
         The constructor can be used to "import" a name from a human readable
         representation, or from a token, and can also be used to convert a
@@ -106,23 +114,19 @@ class Name(rname.Name):
         else:
             self._attr_obj = None
 
-    def __str__(self):
-        if issubclass(str, six.text_type):
-            # Python 3 -- we should return unicode
-            return bytes(self).decode(_utils._get_encoding())
-        else:
-            # Python 2 -- we should return a string
-            return self.__bytes__()
+    def __str__(self) -> str:
+        # Python 3 -- we should return unicode
+        return bytes(self).decode(_utils._get_encoding())
 
-    def __unicode__(self):
+    def __unicode__(self) -> str:
         # Python 2 -- someone asked for unicode
         return self.__bytes__().decode(_utils._get_encoding())
 
-    def __bytes__(self):
+    def __bytes__(self) -> bytes:
         # Python 3 -- someone asked for bytes
         return rname.display_name(self, name_type=False).name
 
-    def display_as(self, name_type):
+    def display_as(self, name_type: OID) -> str:
         """
         Display this name as the given name type.
 
@@ -161,15 +165,15 @@ class Name(rname.Name):
             raise NotImplementedError("Your GSSAPI implementation does not "
                                       "support RFC 6680 (the GSSAPI naming "
                                       "extensions)")
-        return rname_rfc6680.display_name_ext(self, name_type).decode(
-            _utils._get_encoding())
+        res: bytes = rname_rfc6680.display_name_ext(self, name_type)
+        return res.decode(_utils._get_encoding())
 
     @property
-    def name_type(self):
+    def name_type(self) -> Optional[OID]:
         """The :class:`NameType` of this name"""
         return rname.display_name(self, name_type=True).name_type
 
-    def __eq__(self, other):
+    def __eq__(self, other: Any) -> bool:
         if not isinstance(other, rname.Name):
             # maybe something else can compare this
             # to other classes, but we certainly can't
@@ -177,15 +181,15 @@ class Name(rname.Name):
         else:
             return rname.compare_name(self, other)
 
-    def __ne__(self, other):
+    def __ne__(self, other: Any) -> bool:
         return not self.__eq__(other)
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         disp_res = rname.display_name(self, name_type=True)
-        return "Name({name}, {name_type})".format(name=disp_res.name,
-                                                  name_type=disp_res.name_type)
+        return "Name({name}, {name_type})".format(name=str(disp_res.name),
+                                                  name_type=str(disp_res.name_type))
 
-    def export(self, composite=False):
+    def export(self, composite: bool = False) -> bytes:
         """Export this name as a token.
 
         This method exports the name into a byte string which can then be
@@ -204,17 +208,19 @@ class Name(rname.Name):
             BadNameError
         """
 
+        ret: bytes
         if composite:
             if rname_rfc6680 is None:
                 raise NotImplementedError("Your GSSAPI implementation does "
                                           "not support RFC 6680 (the GSSAPI "
                                           "naming extensions)")
 
-            return rname_rfc6680.export_name_composite(self)
+            ret = rname_rfc6680.export_name_composite(self)
         else:
-            return rname.export_name(self)
+            ret = rname.export_name(self)
+        return ret
 
-    def canonicalize(self, mech):
+    def canonicalize(self, mech: OID) -> Name:
         """Canonicalize a name with respect to a mechanism.
 
         This method returns a new :class:`Name` that is canonicalized according
@@ -234,13 +240,13 @@ class Name(rname.Name):
 
         return type(self)(rname.canonicalize_name(self, mech))
 
-    def __copy__(self):
+    def __copy__(self) -> Name:
         return type(self)(rname.duplicate_name(self))
 
-    def __deepcopy__(self, memo):
+    def __deepcopy__(self, memo: int) -> Name:
         return type(self)(rname.duplicate_name(self))
 
-    def _inquire(self, **kwargs):
+    def _inquire(self, **kwargs: bool) -> tuples.InquireNameResult:
         """Inspect this name for information.
 
         This method inspects the name for information.
@@ -275,24 +281,26 @@ class Name(rname.Name):
         attrs = kwargs.get('attrs', default_val)
         mech_name = kwargs.get('mech_name', default_val)
 
-        return rname_rfc6680.inquire_name(self, mech_name=mech_name,
-                                          attrs=attrs)
+        ret: tuples.InquireNameResult
+        ret = rname_rfc6680.inquire_name(self, mech_name=mech_name,
+                                         attrs=attrs)
+        return ret
 
     @property
-    def is_mech_name(self):
+    def is_mech_name(self) -> bool:
         """Whether or not this name is a mechanism name
         (:requires-ext:`rfc6680`)
         """
         return self._inquire(mech_name=True).is_mech_name
 
     @property
-    def mech(self):
+    def mech(self) -> OID:
         """The mechanism associated with this name (:requires-ext:`rfc6680`)
         """
         return self._inquire(mech_name=True).mech
 
     @property
-    def attributes(self):
+    def attributes(self) -> _NameAttributeMapping:
         """The attributes of this name (:requires-ext:`rfc6680`)
 
         The attributes are presenting in the form of a
@@ -317,13 +325,14 @@ class Name(rname.Name):
         return self._attr_obj
 
 
-class _NameAttributeMapping(MutableMapping):
-
+class _NameAttributeMapping(MutableMapping[Union[str, bytes],
+                                           tuples.GetNameAttributeResult]):
     """Provides dict-like access to RFC 6680 Name attributes."""
-    def __init__(self, name):
+    def __init__(self, name: Name) -> None:
         self._name = name
 
-    def __getitem__(self, key):
+    def __getitem__(self, key: Union[str, bytes]) \
+        -> tuples.GetNameAttributeResult:
         if isinstance(key, six.text_type):
             key = key.encode(_utils._get_encoding())
 
@@ -333,7 +342,9 @@ class _NameAttributeMapping(MutableMapping):
                                              res.authenticated,
                                              res.complete)
 
-    def __setitem__(self, key, value):
+    def __setitem__(self, key: Union[str, bytes],
+                    value: Union[bytes, Iterable[bytes],
+                                 tuples.GetNameAttributeResult]) -> None:
         if isinstance(key, six.text_type):
             key = key.encode(_utils._get_encoding())
 
@@ -357,14 +368,14 @@ class _NameAttributeMapping(MutableMapping):
             rname_rfc6680.set_name_attribute(self._name, key, value,
                                              complete=complete)
 
-    def __delitem__(self, key):
+    def __delitem__(self, key: Union[str, bytes]) -> None:
         if isinstance(key, six.text_type):
             key = key.encode(_utils._get_encoding())
 
         rname_rfc6680.delete_name_attribute(self._name, key)
 
-    def __iter__(self):
+    def __iter__(self) -> Iterator[bytes]:
         return iter(self._name._inquire(attrs=True).attrs)
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self._name._inquire(attrs=True).attrs)

@@ -1,0 +1,6 @@
+from gssapi.raw.oids import OID
+from gssapi.raw.named_tuples import InquireSASLNameResult
+
+def inquire_saslname_for_mech(mech: OID) -> InquireSASLNameResult: ...
+
+def inquire_mech_for_saslname(sasl_name: bytes) -> OID: ...

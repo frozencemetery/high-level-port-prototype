@@ -1,76 +1,120 @@
-from collections import namedtuple
+from typing import NamedTuple
+
+from gssapi.raw.creds import Creds
+from gssapi.raw.names import Name
+from gssapi.raw.sec_contexts import SecurityContext
+from gssapi.raw.oids import OID
+
+from typing import Iterable, List, Optional, Set
+
+class AcquireCredResult(NamedTuple):
+    creds: "Creds"
+    mechs: Set[OID]
+    lifetime: int
 
 
-AcquireCredResult = namedtuple('AcquireCredResult',
-                               ['creds', 'mechs', 'lifetime'])
+class InquireCredResult(NamedTuple):
+    name: Name
+    lifetime: int
+    usage: str
+    mechs: Optional[Set[OID]]
 
 
-InquireCredResult = namedtuple('InquireCredResult',
-                               ['name', 'lifetime', 'usage',
-                                'mechs'])
+class InquireCredByMechResult(NamedTuple):
+    name: Name
+    init_lifetime: int
+    accept_lifetime: int
+    usage: str
 
 
-InquireCredByMechResult = namedtuple('InquireCredByMechResult',
-                                     ['name', 'init_lifetime',
-                                      'accept_lifetime', 'usage'])
+class AddCredResult(NamedTuple):
+    creds: Creds
+    mechs: Set[OID]
+    init_lifetime: int
+    accept_lifetime: int
 
 
-AddCredResult = namedtuple('AddCredResult',
-                           ['creds', 'mechs', 'init_lifetime',
-                            'accept_lifetime'])
+class DisplayNameResult(NamedTuple):
+    name: bytes
+    name_type: Optional[OID]
 
 
-DisplayNameResult = namedtuple('DisplayNameResult',
-                               ['name', 'name_type'])
+class WrapResult(NamedTuple):
+    message: bytes
+    encrypted: bool
 
 
-WrapResult = namedtuple('WrapResult',
-                        ['message', 'encrypted'])
+class UnwrapResult(NamedTuple):
+    message: bytes
+    encrypted: bool
+    qop: int
 
 
-UnwrapResult = namedtuple('UnwrapResult',
-                          ['message', 'encrypted', 'qop'])
+class AcceptSecContextResult(NamedTuple):
+    context: SecurityContext
+    initiator_name: Name
+    mech: OID
+    token: Optional[bytes]
+    flags: int # wrong
+    lifetime: int
+    delegated_creds: Optional[Creds]
+    more_steps: bool
 
 
-AcceptSecContextResult = namedtuple('AcceptSecContextResult',
-                                    ['context', 'initiator_name',
-                                     'mech', 'token', 'flags', 'lifetime',
-                                     'delegated_creds', 'more_steps'])
+class InitSecContextResult(NamedTuple):
+    context: SecurityContext
+    mech: OID
+    flags: int # wrong
+    token: Optional[bytes]
+    lifetime: int
+    more_steps: bool
 
 
-InitSecContextResult = namedtuple('InitSecContextResult',
-                                  ['context', 'mech', 'flags', 'token',
-                                   'lifetime', 'more_steps'])
+class InquireContextResult(NamedTuple):
+    initiator_name: Optional[Name]
+    target_name: Optional[Name]
+    lifetime: int
+    mech: OID
+    flags: int
+    locally_init: bool
+    complete: bool
 
 
-InquireContextResult = namedtuple('InquireContextResult',
-                                  ['initiator_name', 'target_name',
-                                   'lifetime', 'mech', 'flags',
-                                   'locally_init', 'complete'])
+class StoreCredResult(NamedTuple):
+    mechs: List[OID]
+    usage: str
 
 
-StoreCredResult = namedtuple('StoreCredResult',
-                             ['mechs', 'usage'])
+class IOVUnwrapResult(NamedTuple):
+    encrypted: bool
+    qop: int
 
 
-IOVUnwrapResult = namedtuple('IOVUnwrapResult',
-                             ['encrypted', 'qop'])
+class InquireNameResult(NamedTuple):
+    attrs: List[bytes]
+    is_mech_name: bool
+    mech: OID
 
 
-InquireNameResult = namedtuple('InquireNameResult',
-                               ['attrs', 'is_mech_name', 'mech'])
+class GetNameAttributeResult(NamedTuple):
+    values: Iterable[bytes]
+    display_values: Iterable[bytes]
+    authenticated: bool
+    complete: bool
 
 
-GetNameAttributeResult = namedtuple('GetNamedAttributeResult',
-                                    ['values', 'display_values',
-                                     'authenticated', 'complete'])
+class InquireAttrsResult(NamedTuple):
+    mech_attrs: Set[OID]
+    known_mech_attrs: Set[OID]
 
-InquireAttrsResult = namedtuple('InquireAttrsResult',
-                                ['mech_attrs', 'known_mech_attrs'])
 
-DisplayAttrResult = namedtuple('DisplayAttrResult', ['name', 'short_desc',
-                                                     'long_desc'])
+class DisplayAttrResult(NamedTuple):
+    name: Name
+    short_desc: str
+    long_desc: str
 
-InquireSASLNameResult = namedtuple('InquireSASLNameResult',
-                                   ['sasl_mech_name', 'mech_name',
-                                    'mech_description'])
+
+class InquireSASLNameResult(NamedTuple):
+    sasl_mech_name: bytes
+    mech_name: bytes
+    mech_description: bytes

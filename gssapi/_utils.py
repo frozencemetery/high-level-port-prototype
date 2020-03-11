@@ -5,9 +5,14 @@ import six
 import decorator as deco
 
 from gssapi.raw.misc import GSSError
+from gssapi.raw.sec_contexts import SecurityContext
 
+from typing import Any, Callable, Dict, Optional, Tuple, TypeVar, Union
 
-def import_gssapi_extension(name):
+# return type is technically Optional[types.ModuleType], but because these
+# imports are conditional, we don't have a way of informing mypy the more
+# specific type.  Fall back to dynamic typing for this.
+def import_gssapi_extension(name: str) -> Any:
     """Import a GSSAPI extension module
 
     This method imports a GSSAPI extension module based
@@ -30,20 +35,7 @@ def import_gssapi_extension(name):
         return None
 
 
-def flag_property(flag):
-    def setter(self, val):
-        if val:
-            self.flags.add(flag)
-        else:
-            self.flags.discard(flag)
-
-    def getter(self):
-        return flag in self.flags
-
-    return property(getter, setter)
-
-
-def inquire_property(name, doc=None):
+def inquire_property(name: str, doc: Optional[str] = None) -> property:
     """Creates a property based on an inquire result
 
     This method creates a property that calls the
@@ -57,7 +49,7 @@ def inquire_property(name, doc=None):
         property: the created property
     """
 
-    def inquire_property(self):
+    def inquire_property(self: Any) -> Any:
         if not self._started:
             msg = ("Cannot read {0} from a security context whose "
                    "establishment has not yet been started.")
@@ -72,7 +64,7 @@ def inquire_property(name, doc=None):
 _ENCODING = 'UTF-8'
 
 
-def _get_encoding():
+def _get_encoding() -> str:
     """Gets the current encoding used for strings.
 
     This value is used to encode and decode string
@@ -84,7 +76,7 @@ def _get_encoding():
     return _ENCODING
 
 
-def set_encoding(enc):
+def set_encoding(enc: str) -> None:
     """Sets the current encoding used for strings
 
     This value is used to encode and decode string
@@ -98,20 +90,22 @@ def set_encoding(enc):
     _ENCODING = enc
 
 
-def _encode_dict(d):
+def _encode_dict(d: Dict[Union[str, bytes], Union[str, bytes]]) \
+    -> Dict[bytes, bytes]:
     """Encodes any relevant strings in a dict"""
-    def enc(x):
+    def enc(x: Union[str, bytes]) -> bytes:
         if isinstance(x, six.text_type):
             return x.encode(_ENCODING)
         else:
             return x
 
-    return dict((enc(k), enc(v)) for k, v in six.iteritems(d))
+    return dict((enc(k), enc(v)) for k, v in d.items())
 
 
 # in case of Python 3, just use exception chaining
 @deco.decorator
-def catch_and_return_token(func, self, *args, **kwargs):
+def catch_and_return_token(func: Callable[..., bytes], self: SecurityContext,
+                           *args: Any, **kwargs: Any) -> bytes:
     """Optionally defer exceptions and return a token instead
 
     When `__DEFER_STEP_ERRORS__` is set on the implementing class
@@ -132,6 +126,7 @@ def catch_and_return_token(func, self, *args, **kwargs):
             if six.PY2:
                 self._last_tb = sys.exc_info()[2].tb_next.tb_next
             else:
+                assert(e.__traceback__)
                 self._last_err.__traceback__ = e.__traceback__.tb_next
 
             return e.token
@@ -139,8 +134,10 @@ def catch_and_return_token(func, self, *args, **kwargs):
             raise
 
 
+T = TypeVar("T")
 @deco.decorator
-def check_last_err(func, self, *args, **kwargs):
+def check_last_err(func: Callable[..., T], self: SecurityContext, *args: Any,
+                   **kwargs: Any) -> T:
     """Check and raise deferred errors before running the function
 
     This method checks :python:`_last_err` before running the wrapped
@@ -186,7 +183,8 @@ class CheckLastError(type):
     Additionally, it enabled `__DEFER_STEP_ERRORS__` by default.
     """
 
-    def __new__(cls, name, parents, attrs):
+    def __new__(cls, name: str, parents: Tuple[type, ...],
+                attrs: Dict[str, Any]) -> Any:
         attrs['__DEFER_STEP_ERRORS__'] = True
 
         for attr_name in attrs:
